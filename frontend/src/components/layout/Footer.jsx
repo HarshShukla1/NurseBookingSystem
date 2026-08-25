@@ -1,0 +1,3 @@
+import { Brand } from './NavigationBar'
+
+export function Footer() { return <footer className="footer"><div className="container"><div className="footer-top"><div><Brand /><p className="footer-text">Trusted, compassionate nursing care—right where you feel most comfortable.</p></div><div className="footer-links"><div><h3>Explore</h3><a href="#services">Services</a><a href="#how-it-works">How it works</a></div><div><h3>Get started</h3><a href="#get-started">For patients</a><a href="#for-nurses">For nurses</a></div></div></div><div className="footer-bottom"><span>© 2026 NurseCare. All rights reserved.</span><span>Care with confidence, at home.</span></div></div></footer> }
