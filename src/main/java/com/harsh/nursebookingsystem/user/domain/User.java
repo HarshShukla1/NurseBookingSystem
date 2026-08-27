@@ -76,7 +76,7 @@ public class User {
     private NurseProfile nurseProfile;
 
     // JPA needs a no-argument constructor to recreate an entity from a database row.
-    protected User() {
+    public User() {
     }
 
     public UUID getId() { return id; }
