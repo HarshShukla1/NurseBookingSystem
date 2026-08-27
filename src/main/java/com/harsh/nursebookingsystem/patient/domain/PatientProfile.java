@@ -19,14 +19,23 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * Personal and contact information belonging to a user with the PATIENT role.
+ *
+ * It is separate from {@link User} because these details are meaningful only
+ * for patients. The profile is not an authentication account by itself.
+ */
 @Entity
 @Table(name = "patient_profiles")
 public class PatientProfile {
 
+    // UUID primary key for this profile table.
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    // LAZY delays loading User until getUser() is called.
+    // unique = true makes this one-to-one at the database level.
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
@@ -41,6 +50,7 @@ public class PatientProfile {
     @Column(name = "last_name", nullable = false, length = 100)
     private String lastName;
 
+    // LocalDate is used because a birth date has no time or timezone.
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
@@ -72,6 +82,7 @@ public class PatientProfile {
     @Column(name = "emergency_contact_phone", length = 30)
     private String emergencyContactPhone;
 
+    // Audit fields are managed automatically by Hibernate.
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -80,6 +91,7 @@ public class PatientProfile {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    // Required by JPA; application code will later use a constructor or service method.
     protected PatientProfile() {
     }
 
