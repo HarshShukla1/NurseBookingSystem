@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-export function AuthPanel({ initialMode = 'login', initialRole = 'PATIENT', onClose }) {
+export function AuthPanel({ initialMode = 'login', initialRole = 'PATIENT', requiredRole, onClose, onLogin }) {
   const [mode, setMode] = useState(initialMode)
   const [role, setRole] = useState(initialRole)
   const [email, setEmail] = useState('')
@@ -20,6 +20,11 @@ export function AuthPanel({ initialMode = 'login', initialRole = 'PATIENT', onCl
       })
       const body = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(body.detail || body.message || 'Unable to complete your request.')
+      if (mode === 'login') {
+        if (requiredRole && body.role !== requiredRole) throw new Error('This account does not have administrator access.')
+        onLogin(body)
+        return
+      }
       const accountType = body.role === 'NURSE' ? 'nurse' : 'patient'
       setMessage(`Welcome, ${body.email}. Your ${accountType} account is ready.`)
     } catch (error) {
@@ -32,9 +37,9 @@ export function AuthPanel({ initialMode = 'login', initialRole = 'PATIENT', onCl
   return <div className="auth-backdrop" role="presentation" onMouseDown={onClose}>
     <section className="auth-panel" role="dialog" aria-modal="true" aria-labelledby="auth-title" onMouseDown={event => event.stopPropagation()}>
       <button className="auth-close" type="button" aria-label="Close" onClick={onClose}>×</button>
-      <p className="eyebrow">NurseCare account</p>
-      <h2 id="auth-title">{mode === 'login' ? 'Welcome back' : 'Create your account'}</h2>
-      <p className="auth-copy">{mode === 'login' ? 'Log in as a patient or nurse.' : 'Choose the account that fits how you use NurseCare.'}</p>
+      <p className="eyebrow">{requiredRole ? 'NurseCare administration' : 'NurseCare account'}</p>
+      <h2 id="auth-title">{requiredRole ? 'Administrator sign in' : mode === 'login' ? 'Welcome back' : 'Create your account'}</h2>
+      <p className="auth-copy">{requiredRole ? 'Use your administrator account to manage patients and nurses.' : mode === 'login' ? 'Log in to your patient, nurse, or administrator account.' : 'Choose the account that fits how you use NurseCare.'}</p>
       <form onSubmit={submit}>
         {mode === 'register' && <label>Account type<select value={role} onChange={event => setRole(event.target.value)}><option value="PATIENT">Patient or family</option><option value="NURSE">Nurse</option></select></label>}
         <label>Email address<input type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} required /></label>
@@ -42,7 +47,7 @@ export function AuthPanel({ initialMode = 'login', initialRole = 'PATIENT', onCl
         <button className="button button-primary auth-submit" disabled={submitting}>{submitting ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Create account'}</button>
       </form>
       {message && <p className="auth-message" role="status">{message}</p>}
-      <button className="auth-switch" type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setMessage('') }}>{mode === 'login' ? 'New to NurseCare? Create an account' : 'Already have an account? Log in'}</button>
+      {!requiredRole && <button className="auth-switch" type="button" onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setMessage('') }}>{mode === 'login' ? 'New to NurseCare? Create an account' : 'Already have an account? Log in'}</button>}
     </section>
   </div>
 }
