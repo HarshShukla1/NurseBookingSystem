@@ -23,6 +23,7 @@ export function Dashboard({ user, onLogout }) {
   })
   const [availabilitySaved, setAvailabilitySaved] = useState(false)
   const [bookingOpen, setBookingOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
   const [bookedSlots, setBookedSlots] = useState(() => JSON.parse(localStorage.getItem('patient-booked-slots') || '[]'))
   const openAvailability = () => { setAvailabilitySaved(false); setAvailabilityOpen(true) }
   const toggleDay = day => setAvailability(current => ({ ...current, days: current.days.includes(day) ? current.days.filter(selected => selected !== day) : [...current.days, day] }))
@@ -33,15 +34,40 @@ export function Dashboard({ user, onLogout }) {
     setBookedSlots(nextBookings)
   }
   return <div className={`dashboard-shell dashboard-${user.role.toLowerCase()}`}>
-    <header className="dashboard-header"><div className="container dashboard-header-inner"><Brand /><div className="dashboard-user"><span>{user.email}</span><button className="button-reset dashboard-logout" type="button" onClick={onLogout}>Log out</button></div></div></header>
+    <header className="dashboard-header"><div className="container dashboard-header-inner"><Brand /><div className="dashboard-user"><span>{user.email}</span>{user.role !== 'ADMIN' && <button className="button-reset dashboard-profile-link" type="button" onClick={() => setProfileOpen(true)}>My profile</button>}<button className="button-reset dashboard-logout" type="button" onClick={onLogout}>Log out</button></div></div></header>
     <main className="dashboard-main container">
       <section className="dashboard-welcome"><div><span className="eyebrow">{content.label}</span><h1>{content.title}</h1><p>{content.description}</p></div><button className="button button-primary" type="button" onClick={user.role === 'NURSE' ? openAvailability : user.role === 'PATIENT' ? () => setBookingOpen(true) : undefined}>{content.primaryAction}</button></section>
       <section className="dashboard-stats" aria-label="Account summary">{content.stats.map(([value, label]) => <article className="dashboard-stat" key={label}><strong>{value}</strong><span>{label}</span></article>)}</section>
       {user.role === 'NURSE' && availabilityOpen && <AvailabilityEditor availability={availability} onChange={setAvailability} onToggleDay={toggleDay} onClose={() => setAvailabilityOpen(false)} onSave={saveAvailability} saved={availabilitySaved} />}
       {user.role === 'PATIENT' && bookingOpen && <BookingEditor bookedSlots={bookedSlots} onClose={() => setBookingOpen(false)} onReserve={reserveSlot} />}
+      {user.role !== 'ADMIN' && profileOpen && <ProfileEditor user={user} onClose={() => setProfileOpen(false)} />}
       {user.role === 'ADMIN' ? <AdminAccounts activeView={adminView} onChange={setAdminView} /> : <section className="dashboard-section"><div><span className="eyebrow">Get started</span><h2>Your workspace</h2></div><div className="dashboard-card-grid">{content.cards.map(([title, description]) => <article className="dashboard-card" key={title}><h3>{title}</h3><p>{description}</p><button className="dashboard-card-link" type="button">Open <span aria-hidden="true">→</span></button></article>)}</div></section>}
     </main>
   </div>
+}
+
+function ProfileEditor({ user, onClose }) {
+  const profileKey = `profile:${user.role}:${user.email}`
+  const [profile, setProfile] = useState(() => {
+    const saved = localStorage.getItem(profileKey)
+    return saved ? JSON.parse(saved) : user.role === 'NURSE'
+      ? { firstName: '', lastName: '', phone: '', professionalTitle: '', specialties: '', serviceAreas: '', bio: '' }
+      : { firstName: '', lastName: '', phone: '', dateOfBirth: '', address: '', city: '', emergencyContact: '' }
+  })
+  const [saved, setSaved] = useState(false)
+  const update = event => { setProfile(current => ({ ...current, [event.target.name]: event.target.value })); setSaved(false) }
+  const save = event => { event.preventDefault(); localStorage.setItem(profileKey, JSON.stringify(profile)); setSaved(true) }
+  const isNurse = user.role === 'NURSE'
+  return <section className="profile-editor dashboard-section" aria-labelledby="profile-title">
+    <div className="availability-editor-heading"><div><span className="eyebrow">{isNurse ? 'Professional profile' : 'Personal profile'}</span><h2 id="profile-title">Update your profile</h2><p>{isNurse ? 'Keep your experience and service details current so patients can find you.' : 'Keep your contact and care details ready when you book a visit.'}</p></div><button className="button-reset availability-close" type="button" onClick={onClose} aria-label="Close profile editor">&times;</button></div>
+    <form className="profile-form" onSubmit={save}>
+      <label>First name<input name="firstName" value={profile.firstName} onChange={update} required /></label>
+      <label>Last name<input name="lastName" value={profile.lastName} onChange={update} required /></label>
+      <label>Phone number<input name="phone" type="tel" value={profile.phone} onChange={update} /></label>
+      {isNurse ? <><label>Professional title<input name="professionalTitle" placeholder="Registered Nurse" value={profile.professionalTitle} onChange={update} /></label><label>Specialties<input name="specialties" placeholder="Elderly care, wound care" value={profile.specialties} onChange={update} /></label><label>Service areas<input name="serviceAreas" placeholder="City or neighbourhoods served" value={profile.serviceAreas} onChange={update} /></label><label className="profile-form-wide">About you<textarea name="bio" rows="4" value={profile.bio} onChange={update} /></label></> : <><label>Date of birth<input name="dateOfBirth" type="date" value={profile.dateOfBirth} onChange={update} /></label><label>Address<input name="address" value={profile.address} onChange={update} /></label><label>City<input name="city" value={profile.city} onChange={update} /></label><label>Emergency contact<input name="emergencyContact" type="tel" value={profile.emergencyContact} onChange={update} /></label></>}
+      <div className="availability-actions profile-form-wide"><button className="button button-primary" type="submit">Save profile</button>{saved && <p role="status">Your profile has been saved.</p>}</div>
+    </form>
+  </section>
 }
 
 function AvailabilityEditor({ availability, onChange, onToggleDay, onClose, onSave, saved }) {
